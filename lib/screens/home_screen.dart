@@ -1,7 +1,10 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:gym_to_do/widgets/lista_treinos.dart';
+import 'package:provider/provider.dart';
+import '../providers/treino_provider.dart';
 import 'treino_screen.dart';
 import 'edicao_screen.dart';
+import 'perfil_view.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,9 +15,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  // Lista mockada de treinos do usuário
-  final List<String> treinos = ['Treino A', 'Treino B'];
 
   void _onTabTapped(int index) {
     if (index == 1) {
@@ -31,6 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final treinoProvider = Provider.of<TreinoProvider>(context);
+    final listaTreinos = treinoProvider.treinos;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
@@ -49,92 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: _currentIndex == 0
-              ? ListView.separated(
-                  itemCount: treinos.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final treino = treinos[index];
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFEFEF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 24,
-                        ),
-                        title: Text(
-                          treino,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E1E1E),
-                          ),
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          icon: const Icon(
-                            Icons.more_horiz,
-                            color: Color(0xFF1E1E1E),
-                          ),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      EdicaoScreen(nomeTreinoOriginal: treino),
-                                ),
-                              );
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Editar'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Excluir',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  TreinoScreen(nomeTreino: treino),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                )
-              : const Center(
-                  child: Text('Tela de Perfil (Em desenvolvimento)'),
-                ),
+              ? const ListaTreinosWidget()
+              : const PerfilView(),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(

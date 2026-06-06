@@ -1,24 +1,22 @@
 // lib/screens/treino_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/treino_provider.dart';
 
-class TreinoScreen extends StatefulWidget {
-  final String nomeTreino;
-  const TreinoScreen({super.key, required this.nomeTreino});
-
-  @override
-  State<TreinoScreen> createState() => _TreinoScreenState();
-}
-
-class _TreinoScreenState extends State<TreinoScreen> {
-  final List<Map<String, dynamic>> exercicios = [
-    {'nome': 'Exercício 1', 'concluido': false},
-    {'nome': 'Exercício 2', 'concluido': false},
-    {'nome': 'Exercício 3', 'concluido': false},
-    {'nome': 'Exercício 4', 'concluido': false},
-  ];
+class TreinoScreen extends StatelessWidget {
+  final String treinoId;
+  const TreinoScreen({super.key, required this.treinoId});
 
   @override
   Widget build(BuildContext context) {
+    final treinoProvider = Provider.of<TreinoProvider>(context);
+
+    // Tratamento caso o treino tenha sido excluído por outra ação de forma assíncrona
+    final treino = treinoProvider.treinos.firstWhere(
+      (t) => t.id == treinoId,
+      orElse: () => throw Exception('Treino não encontrado'),
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
@@ -35,6 +33,7 @@ class _TreinoScreenState extends State<TreinoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Elemento Visual Decorativo
               Container(
                 height: 160,
                 decoration: BoxDecoration(
@@ -76,11 +75,12 @@ class _TreinoScreenState extends State<TreinoScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Cabeçalho do Treino
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.nomeTreino,
+                    treino.nome,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -88,9 +88,7 @@ class _TreinoScreenState extends State<TreinoScreen> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E1E1E),
                       foregroundColor: Colors.white,
@@ -106,27 +104,29 @@ class _TreinoScreenState extends State<TreinoScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Lista de Exercícios Dinâmica vinda do Provider
               Expanded(
                 child: ListView.separated(
-                  itemCount: exercicios.length,
+                  itemCount: treino.exercicios.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final item = exercicios[index];
+                    final item = treino.exercicios[index];
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          item['concluido'] = !item['concluido'];
-                        });
+                        treinoProvider.alternarStatusExercicio(
+                          treino.id,
+                          item.id,
+                        );
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: item['concluido']
+                          color: item.concluido
                               ? Colors.red[50]
                               : const Color(0xFFEFEFEF),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: item['concluido']
+                            color: item.concluido
                                 ? Colors.red[200]!
                                 : Colors.transparent,
                           ),
@@ -139,23 +139,23 @@ class _TreinoScreenState extends State<TreinoScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              item['nome'],
+                              item.nome,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: item['concluido']
+                                color: item.concluido
                                     ? Colors.red[900]
                                     : const Color(0xFF1E1E1E),
-                                decoration: item['concluido']
+                                decoration: item.concluido
                                     ? TextDecoration.lineThrough
                                     : null,
                               ),
                             ),
                             Icon(
-                              item['concluido']
+                              item.concluido
                                   ? Icons.check_circle
                                   : Icons.radio_button_unchecked,
-                              color: item['concluido']
+                              color: item.concluido
                                   ? Colors.red[700]
                                   : const Color(0xFF888888),
                             ),

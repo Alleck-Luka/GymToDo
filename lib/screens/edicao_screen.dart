@@ -1,10 +1,13 @@
 // lib/screens/edicao_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/treino_model.dart';
+import '../providers/treino_provider.dart';
 
 class EdicaoScreen extends StatefulWidget {
-  final String? nomeTreinoOriginal; // Se for nulo, funciona como "Add"
+  final TreinoModel? treino;
 
-  const EdicaoScreen({super.key, this.nomeTreinoOriginal});
+  const EdicaoScreen({super.key, this.treino});
 
   @override
   State<EdicaoScreen> createState() => _EdicaoScreenState();
@@ -14,25 +17,20 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
   late TextEditingController _nomeTreinoController;
   final List<TextEditingController> _exerciciosControllers = [];
 
-  bool get isEdicao => widget.nomeTreinoOriginal != null;
+  bool get isEdicao => widget.treino != null;
 
   @override
   void initState() {
     super.initState();
     _nomeTreinoController = TextEditingController(
-      text: widget.nomeTreinoOriginal ?? '',
+      text: widget.treino?.nome ?? '',
     );
 
-    // Se for edição, popula com dados padrão
     if (isEdicao) {
-      _exerciciosControllers.addAll([
-        TextEditingController(text: 'Exercício 1'),
-        TextEditingController(text: 'Exercício 2'),
-        TextEditingController(text: 'Exercício 3'),
-        TextEditingController(text: 'Exercício 4'),
-      ]);
+      for (var exercio in widget.treino!.exercicios) {
+        _exerciciosControllers.add(TextEditingController(text: exercio.nome));
+      }
     } else {
-      // Se for inserção, começa com um campo em branco
       _exerciciosControllers.add(TextEditingController());
     }
   }
@@ -59,6 +57,32 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
     });
   }
 
+  void _salvarTreino() {
+    final nomeTreino = _nomeTreinoController.text.trim();
+    if (nomeTreino.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Insira o nome do treino')));
+      return;
+    }
+
+    // Coleta o texto de todos os controladores de exercícios
+    List<String> nomesExercicios = _exerciciosControllers
+        .map((c) => c.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+
+    final provider = Provider.of<TreinoProvider>(context, listen: false);
+
+    if (isEdicao) {
+      provider.editarTreino(widget.treino!.id, nomeTreino, nomesExercicios);
+    } else {
+      provider.adicionarTreino(nomeTreino, nomesExercicios);
+    }
+
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,7 +99,7 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Banner decorativo padrão (Substituindo a área cinza com lápis)
+              // Banner decorativo padrão
               Container(
                 height: 120,
                 decoration: BoxDecoration(
@@ -110,7 +134,7 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Lista Dinâmica de Inputs de Exercícios
+              // Lista Dinâmica de Exercícios
               Expanded(
                 child: ListView.separated(
                   itemCount: _exerciciosControllers.length,
@@ -169,12 +193,9 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Botão Concluir
+              // Botão Concluir (Salvar)
               ElevatedButton(
-                onPressed: () {
-                  // Aqui salvará as alterações no State / Firebase futuramente
-                  Navigator.pop(context);
-                },
+                onPressed: _salvarTreino,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red[700],
                   foregroundColor: Colors.white,

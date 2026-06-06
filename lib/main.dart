@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:gym_to_do/providers/usuario_provider.dart';
+import 'package:provider/provider.dart';
+import 'providers/treino_provider.dart';
 import 'screens/login_screen.dart';
 
 void main() {
-  runApp(const GymToDoApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => TreinoProvider()),
+        ChangeNotifierProvider(create: (context) => UsuarioProvider()),
+      ],
+      child: const GymToDoApp(),
+    ),
+  );
 }
 
 class GymToDoApp extends StatelessWidget {
