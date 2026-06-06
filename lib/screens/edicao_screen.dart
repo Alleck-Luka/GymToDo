@@ -66,7 +66,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
       return;
     }
 
-    // Coleta o texto de todos os controladores de exercícios
     List<String> nomesExercicios = _exerciciosControllers
         .map((c) => c.text.trim())
         .where((text) => text.isNotEmpty)
@@ -99,7 +98,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Banner decorativo padrão
               Container(
                 height: 120,
                 decoration: BoxDecoration(
@@ -116,7 +114,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Input Nome do Treino
               TextField(
                 controller: _nomeTreinoController,
                 style: const TextStyle(
@@ -134,7 +131,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Lista Dinâmica de Exercícios
               Expanded(
                 child: ListView.separated(
                   itemCount: _exerciciosControllers.length,
@@ -177,7 +173,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
                 ),
               ),
 
-              // Botão Adicionar Exercício
               OutlinedButton.icon(
                 onPressed: _adicionarCampoExercicio,
                 icon: const Icon(Icons.add),
@@ -193,7 +188,6 @@ class _EdicaoScreenState extends State<EdicaoScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Botão Concluir (Salvar)
               ElevatedButton(
                 onPressed: _salvarTreino,
                 style: ElevatedButton.styleFrom(

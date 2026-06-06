@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "9376538129",
+    "project_id": "gymtodo-8d304",
+    "storage_bucket": "gymtodo-8d304.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9376538129:android:29908857182025e3431bb0",
+        "android_client_info": {
+          "package_name": "com.example.gym_to_do"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqRQOdQKBJybuJPMLzs4J728wmKDCJUCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

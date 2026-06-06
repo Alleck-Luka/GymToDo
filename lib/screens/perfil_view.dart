@@ -1,5 +1,6 @@
 // lib/screens/perfil_view.dart
 import 'package:flutter/material.dart';
+import 'package:gym_to_do/screens/login_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/usuario_provider.dart';
 
@@ -21,7 +22,7 @@ class _PerfilViewState extends State<PerfilView> {
 
     if (!_editando) {
       _nomeController.text = usuarioProvider.nome;
-      _senhaController.text = usuarioProvider.senha;
+      _senhaController.text = '••••••••';
     }
 
     return Column(
@@ -59,16 +60,35 @@ class _PerfilViewState extends State<PerfilView> {
         const SizedBox(height: 32),
 
         ElevatedButton(
-          onPressed: () {
-            setState(() {
+          onPressed: () async {
+            try {
               if (_editando) {
-                usuarioProvider.atualizarPerfil(
-                  _nomeController.text,
-                  _senhaController.text,
-                );
+                await usuarioProvider.atualizarNome(_nomeController.text);
+
+                if (_senhaController.text != '••••••••' &&
+                    _senhaController.text.isNotEmpty) {
+                  await usuarioProvider.atualizarSenha(_senhaController.text);
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Perfil atualizado com sucesso!'),
+                    ),
+                  );
+                }
               }
-              _editando = !_editando;
-            });
+              setState(() {
+                _editando = !_editando;
+              });
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro ao atualizar: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: _editando
@@ -81,6 +101,23 @@ class _PerfilViewState extends State<PerfilView> {
             ),
           ),
           child: Text(_editando ? 'Salvar Alterações' : 'Editar Perfil'),
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () async {
+            await usuarioProvider.logout();
+            if (context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            }
+          },
+          icon: const Icon(Icons.logout, color: Colors.red),
+          label: const Text(
+            'Sair da Conta',
+            style: TextStyle(color: Colors.red),
+          ),
         ),
       ],
     );

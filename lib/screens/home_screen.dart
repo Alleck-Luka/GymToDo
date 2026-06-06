@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gym_to_do/widgets/lista_treinos.dart';
-import 'package:provider/provider.dart';
-import '../providers/treino_provider.dart';
-import 'treino_screen.dart';
 import 'edicao_screen.dart';
 import 'perfil_view.dart';
 
@@ -31,9 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final treinoProvider = Provider.of<TreinoProvider>(context);
-    final listaTreinos = treinoProvider.treinos;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(

@@ -1,4 +1,3 @@
-// lib/screens/treino_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/treino_provider.dart';
@@ -11,7 +10,6 @@ class TreinoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final treinoProvider = Provider.of<TreinoProvider>(context);
 
-    // Tratamento caso o treino tenha sido excluído por outra ação de forma assíncrona
     final treino = treinoProvider.treinos.firstWhere(
       (t) => t.id == treinoId,
       orElse: () => throw Exception('Treino não encontrado'),
@@ -33,7 +31,6 @@ class TreinoScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Elemento Visual Decorativo
               Container(
                 height: 160,
                 decoration: BoxDecoration(
@@ -75,7 +72,6 @@ class TreinoScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Cabeçalho do Treino
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -104,7 +100,6 @@ class TreinoScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Lista de Exercícios Dinâmica vinda do Provider
               Expanded(
                 child: ListView.separated(
                   itemCount: treino.exercicios.length,
@@ -117,6 +112,7 @@ class TreinoScreen extends StatelessWidget {
                         treinoProvider.alternarStatusExercicio(
                           treino.id,
                           item.id,
+                          item.concluido,
                         );
                       },
                       child: Container(

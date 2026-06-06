@@ -1,86 +1,112 @@
-// lib/providers/treino_provider.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/treino_model.dart';
 import '../models/exercicio_model.dart';
 
 class TreinoProvider with ChangeNotifier {
-  final List<TreinoModel> _treinos = [
-    TreinoModel(
-      id: '1',
-      nome: 'Treino A',
-      exercicios: [
-        ExercicioModel(id: '101', nome: 'Agachamento Free'),
-        ExercicioModel(id: '102', nome: 'Leg Press 45°'),
-        ExercicioModel(id: '103', nome: 'Extensora'),
-      ],
-    ),
-    TreinoModel(
-      id: '2',
-      nome: 'Treino B',
-      exercicios: [
-        ExercicioModel(id: '201', nome: 'Supino Reto'),
-        ExercicioModel(id: '202', nome: 'Desenvolvimento'),
-        ExercicioModel(id: '203', nome: 'Tríceps Corda'),
-      ],
-    ),
-  ];
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  List<TreinoModel> _treinos = [];
+  String? _userId;
 
   List<TreinoModel> get treinos => [..._treinos];
 
-  // Adicionar novo treino
-  void adicionarTreino(String nome, List<String> nomesExercicios) {
-    final novosExercicios = nomesExercicios
-        .where((nome) => nome.trim().isNotEmpty)
-        .map(
-          (nome) => ExercicioModel(
-            id: DateTime.now().microsecondsSinceEpoch.toString() + nome,
-            nome: nome,
-          ),
-        )
-        .toList();
-
-    final novoTreino = TreinoModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      nome: nome,
-      exercicios: novosExercicios,
-    );
-
-    _treinos.add(novoTreino);
-    notifyListeners(); // Atualiza a UI
-  }
-
-  // Editar treino existente
-  void editarTreino(String id, String novoNome, List<String> nomesExercicios) {
-    final index = _treinos.indexWhere((t) => t.id == id);
-    if (index >= 0) {
-      final novosExercicios = nomesExercicios
-          .where((nome) => nome.trim().isNotEmpty)
-          .map(
-            (nome) => ExercicioModel(
-              id: DateTime.now().microsecondsSinceEpoch.toString() + nome,
-              nome: nome,
-            ),
-          )
-          .toList();
-
-      _treinos[index].nome = novoNome;
-      _treinos[index].exercicios = novosExercicios;
+  // Sempre que o usuário logar ou deslogar, atualizamos o ID aqui para carregar os treinos certos
+  void atualizarUsuario(String? novoUserId) {
+    _userId = novoUserId;
+    if (_userId != null) {
+      escutarTreinos();
+    } else {
+      _treinos = [];
       notifyListeners();
     }
   }
 
-  // Excluir Treino
-  void excluirTreino(String id) {
-    _treinos.removeWhere((t) => t.id == id);
-    notifyListeners();
+  // Atalho para pegar a referência da coleção de treinos do usuário atual
+  CollectionReference get _treinosRef {
+    if (_userId == null) throw Exception("Usuário não autenticado");
+    return _db.collection('usuarios').doc(_userId).collection('treinos');
   }
 
-  // Alternar status do exercício (Check/Uncheck)
-  void alternarStatusExercicio(String treinoId, String exercicioId) {
-    final treino = _treinos.firstWhere((t) => t.id == treinoId);
-    final exercicio = treino.exercicios.firstWhere((e) => e.id == exercicioId);
+  void escutarTreinos() {
+    _treinosRef.snapshots().listen((treinosSnapshot) async {
+      List<TreinoModel> listaTemporaria = [];
 
-    exercicio.concluido = !exercicio.concluido;
-    notifyListeners();
+      for (var doc in treinosSnapshot.docs) {
+        final dadosTreino = doc.data() as Map<String, dynamic>;
+
+        final exerciciosSnapshot = await doc.reference
+            .collection('exercicios')
+            .get();
+
+        List<ExercicioModel> listaExercicios = exerciciosSnapshot.docs.map((
+          expDoc,
+        ) {
+          return ExercicioModel.fromMap(expDoc.id, expDoc.data());
+        }).toList();
+
+        listaTemporaria.add(
+          TreinoModel.fromMap(doc.id, dadosTreino, listaExercicios),
+        );
+      }
+
+      _treinos = listaTemporaria;
+      notifyListeners();
+    });
+  }
+
+  Future<void> adicionarTreino(
+    String nome,
+    List<String> nomesExercicios,
+  ) async {
+    DocumentReference treinoDoc = await _treinosRef.add({'nome': nome});
+
+    for (var nomeExercicio in nomesExercicios) {
+      if (nomeExercicio.trim().isNotEmpty) {
+        await treinoDoc.collection('exercicios').add({
+          'nome': nomeExercicio,
+          'concluido': false,
+        });
+      }
+    }
+  }
+
+  Future<void> editarTreino(
+    String id,
+    String novoNome,
+    List<String> nomesExercicios,
+  ) async {
+    DocumentReference treinoDoc = _treinosRef.doc(id);
+
+    await treinoDoc.update({'nome': novoNome});
+
+    final exerciciosAntigos = await treinoDoc.collection('exercicios').get();
+    for (var doc in exerciciosAntigos.docs) {
+      await doc.reference.delete();
+    }
+
+    for (var nomeExercicio in nomesExercicios) {
+      if (nomeExercicio.trim().isNotEmpty) {
+        await treinoDoc.collection('exercicios').add({
+          'nome': nomeExercicio,
+          'concluido': false,
+        });
+      }
+    }
+  }
+
+  Future<void> excluirTreino(String id) async {
+    await _treinosRef.doc(id).delete();
+  }
+
+  Future<void> alternarStatusExercicio(
+    String treinoId,
+    String exercicioId,
+    bool statusAtual,
+  ) async {
+    await _treinosRef
+        .doc(treinoId)
+        .collection('exercicios')
+        .doc(exercicioId)
+        .update({'concluido': !statusAtual});
   }
 }
