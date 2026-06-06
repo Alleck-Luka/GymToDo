@@ -1,3 +1,4 @@
+// lib/providers/treino_provider.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/treino_model.dart';
@@ -10,7 +11,6 @@ class TreinoProvider with ChangeNotifier {
 
   List<TreinoModel> get treinos => [..._treinos];
 
-  // Sempre que o usuário logar ou deslogar, atualizamos o ID aqui para carregar os treinos certos
   void atualizarUsuario(String? novoUserId) {
     _userId = novoUserId;
     if (_userId != null) {
@@ -21,7 +21,6 @@ class TreinoProvider with ChangeNotifier {
     }
   }
 
-  // Atalho para pegar a referência da coleção de treinos do usuário atual
   CollectionReference get _treinosRef {
     if (_userId == null) throw Exception("Usuário não autenticado");
     return _db.collection('usuarios').doc(_userId).collection('treinos');
@@ -75,22 +74,44 @@ class TreinoProvider with ChangeNotifier {
     String novoNome,
     List<String> nomesExercicios,
   ) async {
-    DocumentReference treinoDoc = _treinosRef.doc(id);
+    try {
+      final index = _treinos.indexWhere((t) => t.id == id);
+      if (index != -1) {
+        List<ExercicioModel> exerciciosLocais = nomesExercicios
+            .where((nome) => nome.trim().isNotEmpty)
+            .map(
+              (nome) => ExercicioModel(
+                id: DateTime.now().toString(),
+                nome: nome,
+                concluido: false,
+              ),
+            )
+            .toList();
 
-    await treinoDoc.update({'nome': novoNome});
+        _treinos[index].nome = novoNome;
+        _treinos[index].exercicios = exerciciosLocais;
 
-    final exerciciosAntigos = await treinoDoc.collection('exercicios').get();
-    for (var doc in exerciciosAntigos.docs) {
-      await doc.reference.delete();
-    }
-
-    for (var nomeExercicio in nomesExercicios) {
-      if (nomeExercicio.trim().isNotEmpty) {
-        await treinoDoc.collection('exercicios').add({
-          'nome': nomeExercicio,
-          'concluido': false,
-        });
+        notifyListeners();
       }
+
+      DocumentReference treinoDoc = _treinosRef.doc(id);
+      await treinoDoc.update({'nome': novoNome});
+
+      final exerciciosAntigos = await treinoDoc.collection('exercicios').get();
+      for (var doc in exerciciosAntigos.docs) {
+        await doc.reference.delete();
+      }
+
+      for (var nomeExercicio in nomesExercicios) {
+        if (nomeExercicio.trim().isNotEmpty) {
+          await treinoDoc.collection('exercicios').add({
+            'nome': nomeExercicio,
+            'concluido': false,
+          });
+        }
+      }
+    } catch (e) {
+      print("Erro ao editar treino: $e");
     }
   }
 
@@ -98,15 +119,33 @@ class TreinoProvider with ChangeNotifier {
     await _treinosRef.doc(id).delete();
   }
 
-  Future<void> alternarStatusExercicio(
+  void alternarStatusExercicio(
     String treinoId,
     String exercicioId,
     bool statusAtual,
-  ) async {
-    await _treinosRef
-        .doc(treinoId)
-        .collection('exercicios')
-        .doc(exercicioId)
-        .update({'concluido': !statusAtual});
+  ) {
+    try {
+      final treino = _treinos.firstWhere((t) => t.id == treinoId);
+      final exercicio = treino.exercicios.firstWhere(
+        (e) => e.id == exercicioId,
+      );
+
+      exercicio.concluido = !statusAtual;
+
+      notifyListeners();
+
+      _treinosRef
+          .doc(treinoId)
+          .collection('exercicios')
+          .doc(exercicioId)
+          .update({'concluido': exercicio.concluido})
+          .catchError((error) {
+            print("Erro ao sincronizar com o Firebase: $error");
+            exercicio.concluido = statusAtual;
+            notifyListeners();
+          });
+    } catch (e) {
+      print("Erro ao atualizar o estado do exercício localmente: $e");
+    }
   }
 }
