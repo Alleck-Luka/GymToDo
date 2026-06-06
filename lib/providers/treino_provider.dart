@@ -75,26 +75,30 @@ class TreinoProvider with ChangeNotifier {
     List<String> nomesExercicios,
   ) async {
     try {
+      DocumentReference treinoDoc = _treinosRef.doc(id);
+
+      List<ExercicioModel> exerciciosDefinitivos = [];
+      for (var nome in nomesExercicios) {
+        if (nome.trim().isNotEmpty) {
+          String novoIdNaNuvem = treinoDoc.collection('exercicios').doc().id;
+
+          exerciciosDefinitivos.add(
+            ExercicioModel(
+              id: novoIdNaNuvem,
+              nome: nome.trim(),
+              concluido: false,
+            ),
+          );
+        }
+      }
+
       final index = _treinos.indexWhere((t) => t.id == id);
       if (index != -1) {
-        List<ExercicioModel> exerciciosLocais = nomesExercicios
-            .where((nome) => nome.trim().isNotEmpty)
-            .map(
-              (nome) => ExercicioModel(
-                id: DateTime.now().toString(),
-                nome: nome,
-                concluido: false,
-              ),
-            )
-            .toList();
-
         _treinos[index].nome = novoNome;
-        _treinos[index].exercicios = exerciciosLocais;
-
+        _treinos[index].exercicios = exerciciosDefinitivos;
         notifyListeners();
       }
 
-      DocumentReference treinoDoc = _treinosRef.doc(id);
       await treinoDoc.update({'nome': novoNome});
 
       final exerciciosAntigos = await treinoDoc.collection('exercicios').get();
@@ -102,16 +106,14 @@ class TreinoProvider with ChangeNotifier {
         await doc.reference.delete();
       }
 
-      for (var nomeExercicio in nomesExercicios) {
-        if (nomeExercicio.trim().isNotEmpty) {
-          await treinoDoc.collection('exercicios').add({
-            'nome': nomeExercicio,
-            'concluido': false,
-          });
-        }
+      for (var exercicio in exerciciosDefinitivos) {
+        await treinoDoc
+            .collection('exercicios')
+            .doc(exercicio.id)
+            .set(exercicio.toMap());
       }
     } catch (e) {
-      print("Erro ao editar treino: $e");
+      print("Erro ao editar treino de forma consistente: $e");
     }
   }
 
